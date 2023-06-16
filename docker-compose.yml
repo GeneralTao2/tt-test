@@ -1,0 +1,43 @@
+version: '2.4'
+
+services:
+  debian:
+    image: tt-test
+    networks:
+      tt-test:
+        aliases:
+          - docker
+    tty: true
+    environment:
+      - DOCKER_HOST=tcp://docker:2376
+      - DOCKER_CERT_PATH=/certs/client
+      - DOCKER_TLS_VERIFY=1
+    volumes:
+      - tt-test-certs:/certs/client
+    depends_on:
+      dind:
+        condition: service_healthy
+
+  dind:
+    image: docker:dind
+    privileged: true
+    command: --storage-driver overlay2
+    networks:
+      tt-test:
+        aliases:
+          - docker
+    environment:
+      - DOCKER_TLS_CERTDIR=/certs
+    volumes:
+      - tt-test-certs:/certs/client
+    healthcheck:
+      test: docker ps || exit 1
+      interval: 1s
+      timeout: 1s
+      retries: 10
+
+volumes:
+  tt-test-certs:
+
+networks:
+  tt-test:
